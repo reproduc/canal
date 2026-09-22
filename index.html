@@ -324,18 +324,25 @@ document.querySelectorAll('.os-tab').forEach(tab => {
   };
 });
 
-// ===== PWA nativo =====
+// ===== PWA: instalación y service worker =====
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  document.getElementById('installOpenBtn').textContent = '⬇️ Instalar app ahora';
+  document.getElementById('installBanner').style.display = 'block';
 });
+document.getElementById('installBtn').onclick = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+};
 if ('serviceWorker' in navigator){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 
-// Activar sonido tras primer toque
+// Inicio con sonido activado tras primer toque (autoplay policies)
 playerWrap.addEventListener('click', function once(){
   video.muted = false;
   document.getElementById('muteBtn').textContent = '🔊';
