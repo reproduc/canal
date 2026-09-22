@@ -1,0 +1,32 @@
+{
+  "name": "Tv Mundo Peru - Canal de Televisi\u00f3n",
+  "short_name": "Tv Mundo Peru",
+  "description": "Mira Tv Mundo Peru en vivo desde cualquier dispositivo.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0f",
+  "theme_color": "#e11d48",
+  "icons": [
+    {
+      "src": "imagenes/app.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "imagenes/app.png",
+      "sizes": "512x512",
+      "type": "image/png"
+       },
+        {
+            "src": "imagenes/app.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "imagenes/app.png",
+            "sizes": "96x96",
+            "type": "image/png"
+    }
+  ]
+}

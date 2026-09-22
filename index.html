@@ -1,0 +1,485 @@
+<head>
+<meta charset="UTF-8">
+<!-- This site is hosted on Netlify. Anyone can build and deploy a site
+     like this one for free: https://netlify.new/?utm_campaign=loops&utm_source=ai-legible&utm_medium=owned&utm_content=comment&utm_id=f76f7ef8-d629-421a-adfc-8da477acf665
+     Netlify hosting facts for this site: static/SSR served via Netlify Edge. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Tv Mundo Peru — En Vivo</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+  :root{
+    --bg:#071022; --panel:#0e1a33; --accent:#1d4ed8; --accent2:#60a5fa;
+    --green:#25D366; --text:#f4f4f6; --muted:#94a3b8; --radius:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--bg);color:var(--text);
+    font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif}
+  body{display:flex;flex-direction:column;overflow:hidden}
+
+  header{
+    display:flex;align-items:center;gap:12px;
+    padding:12px 16px;
+    background:linear-gradient(135deg,#0d1a33,#091226);
+    border-bottom:1px solid #1e3a5f;
+    flex-shrink:0;
+  }
+  .logo-img{width:52px;height:52px;border-radius:12px;object-fit:cover;
+    background:#fff;border:2px solid var(--accent2);flex-shrink:0}
+  .brand h1{font-size:18px;font-weight:900;line-height:1.1;
+    background:linear-gradient(90deg,var(--accent2),#93c5fd);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand small{color:var(--muted);font-size:11px;display:block;margin-top:2px}
+  .live-badge{
+    margin-left:auto;display:flex;align-items:center;gap:6px;
+    background:rgba(225,29,72,.15);border:1px solid rgba(225,29,72,.5);
+    color:#fb7185;padding:5px 12px;border-radius:999px;
+    font-size:12px;font-weight:800;flex-shrink:0}
+  .dot{width:8px;height:8px;border-radius:50%;background:#ef4444;
+    animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .player-wrap{position:relative;background:#000;flex-shrink:0}
+  video{width:100%;aspect-ratio:16/9;display:block;background:#000}
+  .overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;
+    background:rgba(7,16,34,.8);backdrop-filter:blur(8px);
+    transition:opacity .3s;z-index:5}
+  .overlay.hidden{opacity:0;pointer-events:none}
+
+  .spin{width:52px;height:52px;border-radius:50%;
+    border:4px solid rgba(255,255,255,.15);border-top-color:var(--accent2);
+    animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .overlay p{color:var(--muted);font-size:14px}
+
+  .controls{
+    position:absolute;left:0;right:0;bottom:0;
+    display:flex;align-items:center;gap:8px;
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+    background:linear-gradient(transparent,rgba(0,0,0,.85));
+    transition:opacity .3s;z-index:6}
+  .controls.hidden{opacity:0;pointer-events:none}
+  .controls button{
+    background:rgba(255,255,255,.12);border:none;color:#fff;
+    width:40px;height:40px;border-radius:10px;font-size:18px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .controls button:active{background:rgba(96,165,250,.4)}
+  #qualityBtn{font-size:11px;font-weight:800;width:auto;padding:0 12px;height:40px}
+  .spacer{flex:1}
+
+  .content{flex:1;overflow-y:auto;padding:18px 16px 40px}
+  .card{
+    background:var(--panel);border:1px solid #1e3a5f;
+    border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .card h3{font-size:14px;margin-bottom:10px;color:var(--accent2);
+    text-transform:uppercase;letter-spacing:1px}
+  .card p{color:var(--muted);font-size:14px;line-height:1.6}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .btn{
+    flex:1;min-width:130px;padding:13px 16px;border:none;border-radius:12px;
+    font-size:14px;font-weight:800;cursor:pointer;
+    background:var(--accent);color:#fff;transition:filter .2s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    text-decoration:none}
+  .btn.secondary{background:#16294d;color:var(--text)}
+  .btn.whatsapp{background:var(--green);color:#fff}
+  .btn.install{background:linear-gradient(135deg,#2563eb,#1e40af);
+    box-shadow:0 4px 14px rgba(37,99,235,.4)}
+  .btn:active{filter:brightness(1.3)}
+
+
+
+  /* ===== MODAL INSTALAR ===== */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);
+    backdrop-filter:blur(4px);z-index:50;
+    display:none;align-items:center;justify-content:center;padding:20px}
+  .modal-bg.open{display:flex}
+  .modal{
+    background:var(--panel);border:1px solid #1e3a5f;
+    border-radius:18px;max-width:420px;width:100%;
+    padding:24px;max-height:85vh;overflow-y:auto}
+  .modal h2{font-size:18px;margin-bottom:4px}
+  .modal .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  .step{display:flex;gap:12px;margin-bottom:14px}
+  .step-num{
+    width:28px;height:28px;border-radius:50%;flex-shrink:0;
+    background:var(--accent);color:#fff;font-weight:800;font-size:14px;
+    display:flex;align-items:center;justify-content:center}
+  .step p{font-size:13.5px;color:var(--text);line-height:1.5}
+  .step p b{color:var(--accent2)}
+  .modal-close{
+    width:100%;padding:12px;border:none;border-radius:12px;
+    background:#16294d;color:#fff;font-weight:800;font-size:14px;
+    cursor:pointer;margin-top:6px}
+  .os-tabs{display:flex;gap:8px;margin-bottom:16px}
+  .os-tab{
+    flex:1;padding:10px;border:1px solid #1e3a5f;border-radius:10px;
+    background:transparent;color:var(--muted);font-weight:700;font-size:13px;
+    cursor:pointer}
+  .os-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  @media(min-width:820px){
+    body{max-width:900px;margin:0 auto;border-left:1px solid #14264a;
+         border-right:1px solid #14264a}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📺</div>
+  <div class="brand">
+    <h1>Tv Mundo Peru</h1>
+    <small>Tu Canal Donde Estes</small>
+  </div>
+  <div class="live-badge"><span class="dot"></span>EN VIVO</div>
+</header>
+
+<div class="player-wrap">
+  <video id="video" playsinline="" muted="" src="blob:https://bejewelled-cannoli-c432e2.netlify.app/9471996c-6a1a-4dc3-8bfd-0f4c5d3be1be"></video>
+
+  <div class="overlay hidden" id="overlay">
+
+    <div class="spin" style="display: block;"></div>
+    <p id="statusMsg">Cargando señal…</p>
+  </div>
+  <div class="controls hidden" id="controls">
+    <button id="playBtn" title="Reproducir/Pausar">⏸</button>
+    <button id="muteBtn" title="Sonido">🔇</button>
+    <div class="spacer"></div>
+    <button id="qualityBtn" title="Calidad" style="display: none;">AUTO</button>
+    <button id="fsBtn" title="Pantalla completa">⛶</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="card">
+    <h3>📡 Transmisión en vivo</h3>
+    <p>Disfruta de <b>Tv Mundo Peru</b> en vivo, 24/7. en calidad HD. Compatibilidad total con Android, iOS, web y Smart TV.</p>
+    <div class="actions">
+      <button class="btn install" id="installOpenBtn">⬇️ Instalar app ahora</button>
+    </div>
+    <div class="actions">
+      <a class="btn whatsapp" href="https://wa.me/50950325194" target="_blank" rel="noopener">💬 WhatsApp</a>
+      <button class="btn secondary" id="shareBtn">🔗 Compartir</button>
+      <button class="btn secondary" id="reloadBtn">🔄 Recargar señal</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🌿 Acerca del canal</h3>
+    <p>Tv Mundo Peru es tu canal de televisión de confianza. Síguenos en nuestras redes sociales para enterarte de la programación, estrenos y contenido exclusivo.</p>
+    <p style="margin-top:10px">📞 Contacto: <b style="color:var(--accent2)">+509 50 32 5194</b></p>
+  </div>
+</div>
+
+<!-- MODAL INSTALAR -->
+<div class="modal-bg" id="installModal">
+  <div class="modal">
+    <h2>📲 Instalar Tv Mundo Peru</h2>
+    <p class="sub">Instala la app en tu teléfono gratis, sin Play Store:</p>
+    <div class="os-tabs">
+      <button class="os-tab active" data-os="android">🤖 Android</button>
+      <button class="os-tab" data-os="ios">🍎 iPhone</button>
+    </div>
+    <div id="steps-android">
+      <div class="step"><div class="step-num">1</div><p>Abre esta página en <b>Google Chrome</b>.</p></div>
+      <div class="step"><div class="step-num">2</div><p>Toca el menú <b>⋮</b> (tres puntos, arriba a la derecha).</p></div>
+      <div class="step"><div class="step-num">3</div><p>Toca <b>"Instalar app"</b> o <b>"Añadir a pantalla de inicio"</b>.</p></div>
+      <div class="step"><div class="step-num">4</div><p>¡Listo! El ícono 🌿 de <b>Tv Mundo Peru</b> quedará en tu pantalla como una app normal.</p></div>
+    </div>
+    <div id="steps-ios" style="display:none">
+      <div class="step"><div class="step-num">1</div><p>Abre esta página en <b>Safari</b> (el navegador con la brújula 🧭).</p></div>
+      <div class="step"><div class="step-num">2</div><p>Toca el botón <b>Compartir</b> (cuadrado con flecha hacia arriba ⬆️).</p></div>
+      <div class="step"><div class="step-num">3</div><p>Baja y toca <b>"Añadir a pantalla de inicio"</b>.</p></div>
+      <div class="step"><div class="step-num">4</div><p>Toca <b>"Añadir"</b> arriba a la derecha. ¡Listo! 📺</p></div>
+    </div>
+    <button class="modal-close" id="modalClose">Entendido ✓</button>
+  </div>
+</div>
+
+<script>
+const STREAM_URL = "https://rtmp.eliniktech.com/Tarpuy/video.m3u8";
+const video = document.getElementById('video');
+const overlay = document.getElementById('overlay');
+const statusMsg = document.getElementById('statusMsg');
+const controls = document.getElementById('controls');
+let hls = null;
+
+function setStatus(msg, showSpinner = true){
+  statusMsg.textContent = msg;
+  overlay.classList.remove('hidden');
+  overlay.querySelector('.spin').style.display = showSpinner ? 'block' : 'none';
+}
+
+function loadStream(){
+  if (hls){ hls.destroy(); hls = null; }
+  if (Hls.isSupported()){
+    hls = new Hls({
+      maxBufferLength: 30,
+      liveSyncDurationCount: 3,
+      enableWorker: true,
+      lowLatencyMode: true
+    });
+    hls.loadSource(STREAM_URL);
+    hls.attachMedia(video);
+    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+      video.play().catch(()=>{});
+      buildQualityMenu();
+    });
+    hls.on(Hls.Events.ERROR, (_, data) => {
+      if (data.fatal){
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) setStatus('Error de red. Reintentando…');
+        else if (data.type === Hls.ErrorTypes.MEDIA_ERROR){ hls.recoverMediaError(); return; }
+        else setStatus('Señal interrumpida. Reintentando…');
+        setTimeout(loadStream, 4000);
+      }
+    });
+  } else if (video.canPlayType('application/vnd.apple.mpegurl')){
+    video.src = STREAM_URL;
+    video.play().catch(()=>{});
+  } else {
+    setStatus('Tu navegador no soporta streaming HLS.', false);
+  }
+}
+
+// Controles visibles al tocar
+const playerWrap = document.querySelector('.player-wrap');
+let hideTimer;
+function showControls(){
+  controls.classList.remove('hidden');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(()=>controls.classList.add('hidden'), 3500);
+}
+playerWrap.addEventListener('click', showControls);
+
+document.getElementById('playBtn').onclick = e => {
+  e.stopPropagation();
+  if (video.paused){ video.play(); e.target.textContent = '⏸'; }
+  else { video.pause(); e.target.textContent = '▶'; }
+};
+document.getElementById('muteBtn').onclick = e => {
+  e.stopPropagation();
+  video.muted = !video.muted;
+  e.target.textContent = video.muted ? '🔇' : '🔊';
+};
+document.getElementById('fsBtn').onclick = e => {
+  e.stopPropagation();
+  if (document.fullscreenElement) document.exitFullscreen();
+  else playerWrap.requestFullscreen?.() || video.webkitEnterFullscreen?.();
+};
+document.getElementById('reloadBtn').onclick = () => { setStatus('Reconectando…'); loadStream(); };
+document.getElementById('shareBtn').onclick = async () => {
+  const data = { title:'Son de Mi Tierra TV', text:'📺 Mira Son de Mi Tierra TV en vivo', url: location.href };
+  if (navigator.share) navigator.share(data).catch(()=>{});
+  else { await navigator.clipboard.writeText(location.href); alert('Enlace copiado 📋'); }
+};
+
+// Menú de calidad
+function buildQualityMenu(){
+  const btn = document.getElementById('qualityBtn');
+  const levels = hls.levels;
+  if (!levels || levels.length <= 1){ btn.style.display='none'; return; }
+  let idx = -1;
+  btn.onclick = e => {
+    e.stopPropagation();
+    idx++;
+    if (idx >= levels.length) idx = -1;
+    hls.currentLevel = idx;
+    btn.textContent = idx === -1 ? 'AUTO' : Math.round(levels[idx].height) + 'p';
+  };
+}
+
+video.addEventListener('playing', () => overlay.classList.add('hidden'));
+video.addEventListener('waiting', () => setStatus('Cargando señal…'));
+video.addEventListener('error', () => { setStatus('Error de reproducción. Reintentando…'); setTimeout(loadStream, 4000); });
+
+// ===== MODAL INSTALAR (siempre visible) =====
+const modal = document.getElementById('installModal');
+document.getElementById('installOpenBtn').onclick = () => {
+  // Si el navegador ofrece instalación nativa, la usamos
+  if (deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(()=>{ deferredPrompt = null; });
+    return;
+  }
+  modal.classList.add('open');
+};
+document.getElementById('modalClose').onclick = () => modal.classList.remove('open');
+modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+// Tabs Android / iOS
+document.querySelectorAll('.os-tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.os-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('steps-android').style.display = tab.dataset.os === 'android' ? 'block' : 'none';
+    document.getElementById('steps-ios').style.display = tab.dataset.os === 'ios' ? 'block' : 'none';
+  };
+});
+
+// ===== PWA nativo =====
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installOpenBtn').textContent = '⬇️ Instalar app ahora';
+});
+if ('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// Activar sonido tras primer toque
+playerWrap.addEventListener('click', function once(){
+  video.muted = false;
+  document.getElementById('muteBtn').textContent = '🔊';
+  playerWrap.removeEventListener('click', once);
+});
+
+loadStream();
+</script>
+
+
+<script async="" src="/.netlify/scripts/hud?variant=public" data-nf-variant="public" data-netlify-site-id="f76f7ef8-d629-421a-adfc-8da477acf665" data-app-host="app.netlify.com"></script>
+<iframe id="nl-badge-frame" title="Powered by Netlify" srcdoc="&lt;!doctype html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset=&quot;utf-8&quot;&gt;&lt;meta name=&quot;color-scheme&quot; content=&quot;dark&quot;&gt;&lt;style&gt;
+    :root{--nl-vw:1920px;--nl-vh:953px}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:transparent;overflow:hidden}
+    body{display:flex;align-items:flex-end;justify-content:flex-end;height:100vh;
+      padding:8px 18px 18px 8px;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.5;color:#f4f9f9;-webkit-font-smoothing:antialiased}
+    .nl-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:10px;width:max-content;max-width:calc(var(--nl-vw,100vw) - 26px)}
+    button{font-family:inherit;cursor:pointer}
+    :focus-visible{outline:2px solid #32e6e2;outline-offset:2px;border-radius:6px}
+    .nl-icon-btn{position:relative;flex:none;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:1px solid transparent;background:transparent;color:#d5e3e6;transition:background .15s ease,color .15s ease}
+    .nl-icon-btn:hover{background:rgba(255,255,255,0.08);color:#f4f9f9}
+    .nl-tap::after{content:&quot;&quot;;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:max(100%,44px);height:max(100%,44px)}
+    @keyframes nl-rise{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+    @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition:none!important}}
+  
+      .nl-card{position:relative;display:none;width:min(340px,calc(var(--nl-vw,100vw) - 26px));max-height:calc(var(--nl-vh,100vh) - 84px);overflow-y:auto;background:linear-gradient(180deg,#132832 0%,#0e1e25 100%);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:18px;transform-origin:bottom right;animation:nl-rise .3s cubic-bezier(.34,1.4,.4,1) both}
+      .nl-card.open{display:block}
+      .nl-card-close{position:absolute;top:10px;right:10px}
+      .nl-card h2{margin:0;padding-right:30px;font-size:16px;font-weight:750;letter-spacing:-0.015em;line-height:1.35}
+      .nl-card h2 em{font-style:normal;background:linear-gradient(90deg,#32e6e2,#4d7cfe,#9a6bff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+      .nl-card p{margin:8px 0 0;font-size:12.5px;color:#d5e3e6}
+      .nl-prompt{position:relative;margin-top:14px;background:#10222b;border:1px solid rgba(255,255,255,0.09);border-radius:14px;padding:10px 12px;transition:border-color .15s ease,box-shadow .15s ease}
+      .nl-prompt:focus-within{border-color:#05bdba;box-shadow:0 0 0 3px rgba(5,189,186,0.18)}
+      .nl-prompt textarea{display:block;width:100%;height:38px;resize:none;border:0;outline:none;background:transparent;color:#f4f9f9;font:inherit;font-size:13px;line-height:19px;padding:0 28px 0 0}
+      .nl-prompt textarea::placeholder{color:#a9bdc2}
+      .nl-send{position:absolute;right:9px;bottom:9px;width:24px;height:24px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:50%;background:#05bdba;color:#02191b;transition:background .15s ease}
+      .nl-send:hover{background:#32e6e2}
+      @media (pointer: coarse){
+        .nl-prompt textarea{font-size:16px;line-height:21px;height:42px}
+      }
+      .nl-or{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:10.5px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#a9bdc2}
+      .nl-or::before,.nl-or::after{content:&quot;&quot;;flex:1;height:1px;background:rgba(255,255,255,0.09)}
+      .nl-drop{display:flex;align-items:center;justify-content:space-between;gap:6px;text-decoration:none;background:#1b3a45;border:1px solid rgba(255,255,255,0.09);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;color:#cfe0e3;transition:background .15s ease,color .15s ease,border-color .15s ease}
+      .nl-drop:hover{background:#224753;color:#f4f9f9;border-color:rgba(50,230,226,0.3)}
+      .nl-drop .nl-arrow{transition:transform .18s cubic-bezier(.34,1.4,.4,1)}
+      .nl-drop:hover .nl-arrow{transform:translateX(3px)}
+      .nl-badge{display:flex;align-items:center;gap:9px;white-space:nowrap;border:1px solid rgba(255,255,255,0.09);background:linear-gradient(180deg,#142b34,#0e1e25);color:#f4f9f9;border-radius:999px;padding:9px 14px 9px 11px;font-size:13px;font-weight:600;letter-spacing:0.01em;transition:border-color .2s ease}
+      .nl-badge:hover{border-color:rgba(50,230,226,0.26)}
+      .nl-hide{display:block;width:100%;margin-top:10px;border:0;background:transparent;color:#a9bdc2;font-size:11.5px;font-weight:600;padding:4px;border-radius:8px;transition:color .15s ease}
+      .nl-hide:hover{color:#d5e3e6;text-decoration:underline}
+      .nl-badge-label{color:#d5e3e6;font-weight:500}
+      .nl-badge-brand{font-weight:750}
+    &lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+      &lt;div class=&quot;nl-wrap&quot;&gt;
+        &lt;section class=&quot;nl-card&quot; id=&quot;nl-card&quot; aria-label=&quot;Build your own site on Netlify&quot;&gt;
+          &lt;button type=&quot;button&quot; class=&quot;nl-icon-btn nl-tap nl-card-close&quot; id=&quot;nl-card-close&quot; aria-label=&quot;Close&quot;&gt;&lt;svg width=&quot;14&quot; height=&quot;14&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.9&quot; stroke-linecap=&quot;round&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;M4.5 4.5 11.5 11.5M11.5 4.5 4.5 11.5&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;
+          &lt;h2&gt;&lt;em&gt;Build your own site with Netlify&lt;/em&gt;&lt;/h2&gt;
+          &lt;p&gt;Describe what you want, and an AI agent designs, builds and deploys it in minutes.&lt;/p&gt;
+          &lt;form class=&quot;nl-prompt&quot; action=&quot;https://app.netlify.com/start&quot; method=&quot;get&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;
+            &lt;textarea name=&quot;prompt&quot; rows=&quot;2&quot; required maxlength=&quot;300&quot; autocomplete=&quot;off&quot;
+                      enterkeyhint=&quot;go&quot;
+                      placeholder=&quot;A shop for my handmade surfboards&amp;hellip;&quot;
+                      aria-label=&quot;Describe the site you want to build&quot;&gt;&lt;/textarea&gt;
+            &lt;button type=&quot;submit&quot; class=&quot;nl-send nl-tap&quot; aria-label=&quot;Build this site&quot;&gt;&lt;svg width=&quot;13&quot; height=&quot;13&quot; viewBox=&quot;0 0 16 16&quot; fill=&quot;none&quot; stroke=&quot;currentColor&quot; stroke-width=&quot;1.8&quot; stroke-linecap=&quot;round&quot; stroke-linejoin=&quot;round&quot; aria-hidden=&quot;true&quot;&gt;&lt;path d=&quot;M8 12.75v-9.5M3.9 7.35 8 3.25l4.1 4.1&quot;/&gt;&lt;/svg&gt;&lt;/button&gt;
+            &lt;input type=&quot;hidden&quot; name=&quot;utm_source&quot; value=&quot;netlify_badge&quot;&gt;
+            
+            &lt;input type=&quot;hidden&quot; name=&quot;utm_id&quot; value=&quot;f76f7ef8-d629-421a-adfc-8da477acf665&quot;&gt;
+          &lt;/form&gt;
+          &lt;div class=&quot;nl-or&quot;&gt;&lt;span&gt;or&lt;/span&gt;&lt;/div&gt;
+          &lt;a class=&quot;nl-drop&quot; href=&quot;https://app.netlify.com/drop?utm_source=netlify_badge&amp;utm_id=f76f7ef8-d629-421a-adfc-8da477acf665&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;
+            &lt;span&gt;Drop a site you already have&lt;/span&gt;&lt;span class=&quot;nl-arrow&quot; aria-hidden=&quot;true&quot;&gt;&amp;rarr;&lt;/span&gt;
+          &lt;/a&gt;
+          &lt;button type=&quot;button&quot; class=&quot;nl-hide&quot; id=&quot;nl-hide&quot;&gt;Hide this badge&lt;/button&gt;
+        &lt;/section&gt;
+        &lt;button type=&quot;button&quot; class=&quot;nl-badge&quot; id=&quot;nl-badge&quot; aria-expanded=&quot;false&quot; aria-controls=&quot;nl-card&quot;
+                aria-label=&quot;Powered by Netlify — build your own site&quot;&gt;
+          &lt;svg width=&quot;18&quot; height=&quot;18&quot; viewBox=&quot;0 0 32 32&quot; fill=&quot;none&quot; aria-hidden=&quot;true&quot;&gt;
+    &lt;path fill=&quot;#fff&quot; d=&quot;M17.9922 18.3225H14.005L13.6746 17.9921V14.005L14.005 13.6746H17.9922L18.3226 14.005V17.9921L17.9922 18.3225Z&quot;/&gt;
+    &lt;g fill=&quot;#05BDBA&quot;&gt;
+      &lt;path d=&quot;M9.6958 24.3311H9.35705L7.6661 22.6401V22.3041L10.2511 19.7164L12.042 19.7191L12.2808 19.9552V21.7461L9.6958 24.3311Z&quot;/&gt;
+      &lt;path d=&quot;M7.6661 9.69576V9.35701L9.35705 7.66606H9.6958L12.2808 10.2511V12.0392L12.042 12.2808H10.2511L7.6661 9.69576Z&quot;/&gt;
+      &lt;path d=&quot;M10.0457 17.4369H0.205466L0 17.2314V14.7658L0.205466 14.5603H10.0457L10.2511 14.7658V17.2314L10.0457 17.4369Z&quot;/&gt;
+      &lt;path d=&quot;M31.7945 17.4369H21.9544L21.7489 17.2314V14.7658L21.9544 14.5603H31.7945L32 14.7658V17.2314L31.7945 17.4369Z&quot;/&gt;
+      &lt;path d=&quot;M14.5631 10.0456V2.66547L14.7686 2.46001H17.2343L17.4396 2.66547V10.0456L17.2343 10.2511H14.7686L14.5631 10.0456Z&quot;/&gt;
+      &lt;path d=&quot;M14.5631 29.3316V21.9515L14.7686 21.746H17.2343L17.4396 21.9515V29.3316L17.2343 29.5371H14.7686L14.5631 29.3316Z&quot;/&gt;
+    &lt;/g&gt;&lt;/svg&gt;
+          &lt;span&gt;&lt;span class=&quot;nl-badge-label&quot;&gt;Property by&lt;/span&gt; &lt;span class=&quot;nl-badge-brand&quot;&gt;J.C&lt;/span&gt;&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+      &lt;script&gt;
+        
+    function nlSend(){
+      var wrap=document.querySelector('.nl-wrap'),boxes=[];
+      for(var i=0;i&lt;wrap.children.length;i++){
+        var c=wrap.children[i];
+        if(!c.offsetWidth||!c.offsetHeight)continue;
+        boxes.push({x:c.offsetLeft-wrap.offsetLeft+8,
+                    y:c.offsetTop-wrap.offsetTop+8,
+                    w:c.offsetWidth,h:c.offsetHeight});
+      }
+      parent.postMessage({nlHud:'resize',
+        width:wrap.offsetWidth+26,
+        height:wrap.offsetHeight+26,
+        boxes:boxes},'*');
+    }
+    function nlSendSoon(){requestAnimationFrame(nlSend);}
+    window.addEventListener('load',nlSend);
+    window.addEventListener('message',function(e){
+      if(e.source!==parent||!e.data||e.data.nlHud!=='viewport')return;
+      var s=document.documentElement.style;
+      s.setProperty('--nl-vw',e.data.w+'px');
+      s.setProperty('--nl-vh',e.data.h+'px');
+      document.documentElement.classList.toggle('nl-narrow',e.data.w&lt;600);
+      nlSendSoon();
+    });
+    var nlCoarse=window.matchMedia('(pointer: coarse)').matches;
+    function nlSubmit(form){
+      if(form.requestSubmit)return form.requestSubmit();
+      if(form.checkValidity&amp;&amp;!form.checkValidity())
+        return form.reportValidity&amp;&amp;form.reportValidity();
+      form.submit();
+    }
+  
+        var badge=document.getElementById('nl-badge'),card=document.getElementById('nl-card'),
+            box=card.querySelector('textarea');
+        function setOpen(open){
+          card.classList.toggle('open',open);
+          badge.setAttribute('aria-expanded',open?'true':'false');
+          nlSendSoon();
+          if(open&amp;&amp;!nlCoarse)box.focus();
+        }
+        box.addEventListener('keydown',function(e){
+          if(e.key==='Enter'&amp;&amp;!e.shiftKey){e.preventDefault();nlSubmit(box.form);}
+        });
+        badge.addEventListener('click',function(){setOpen(!card.classList.contains('open'));});
+        document.getElementById('nl-card-close').addEventListener('click',function(){setOpen(false);badge.focus();});
+        document.addEventListener('keydown',function(e){
+          if(e.key==='Escape'&amp;&amp;card.classList.contains('open')){setOpen(false);badge.focus();}
+        });
+        document.getElementById('nl-hide').addEventListener('click',function(){
+          parent.postMessage({nlHud:'state',value:'hidden'},'*');
+        });
+      &lt;/script&gt;
+    &lt;/body&gt;&lt;/html&gt;" style="position: fixed; bottom: 0px; right: 0px; border: 0px; margin: 0px; padding: 0px; background: transparent; color-scheme: dark; z-index: 2147483645; width: 197px; height: 64px; clip-path: path(&quot;M 3 3 H 184 V 51 H 3 Z&quot;);" data-nl-ready="1"></iframe></body>
